@@ -1,3 +1,6 @@
+let started = false;
+let startButton;
+
 let trees = [];
 let treeX;
 let currentTree;
@@ -27,9 +30,38 @@ function setup() {
     for (let i = 0; i < numBlobs; i++) {
         blobs.push(new Blob(random(width), random(height), random(50, 150)));
     }
+
+    startButton = createButton("Start");
+    startButton.style("font-size", "20px");
+    startButton.style("padding", "10px 30px");
+    startButton.style("border-radius", "10px");
+    startButton.style("background", "#ff20");
+    startButton.style("color", "white");
+    startButton.position(width / 2 - 35, height / 2 - 20);
+    startButton.mousePressed(startSketch);
+  
+    noLoop();
 }
 
-function draw() {  
+function startSketch() {
+    started = true;
+    startButton.hide();
+    loop();
+    showEarth = true;
+}
+
+function draw() {
+    if (!started) {
+        background(0);
+        fill(255);
+        textAlign(CENTER, CENTER);
+        textSize(25);
+        text("The Human Experience", width / 2, height / 2 - 100);
+        textSize(18);
+        text("Creative Coding 2025", width / 2, height / 2 - 70);
+        return;
+    }
+
     background(0, 30);
 
     if (growth < maxDepth) {
