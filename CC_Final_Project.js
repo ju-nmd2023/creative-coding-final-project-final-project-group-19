@@ -1,5 +1,8 @@
 let treeX;
 let currentTree;
+let lines = [];
+let t = 0;
+let numLines = 100;
 
 function setup() {
     createCanvas(innerWidth, innerHeight);
@@ -8,9 +11,15 @@ function setup() {
 
     treeX = random(width);
     currentTree = generateTree(120, 0);
+
+    for (let i = 0; i < numLines; i++) {
+        let y = map(i, 0, numLines, -50, height + 50);
+        let len = width;
+        lines.push(new HorizontalLine(y, len));
+    }
 }
 
-function draw() {
+function draw() {  
     background(0, 30);
 
     if (growth < maxDepth) {
@@ -18,7 +27,6 @@ function draw() {
     }
 
     windTime += 0.02;
-    earth();
 
     if (showEarth) {
         earth();
@@ -130,6 +138,7 @@ function earth() {
 }
 
 // ------------------ FIRE ------------------ //
+// 
 
 let showFire = false;
 let fireParticles = [];
@@ -167,8 +176,34 @@ function fire() {
 
 let showWater = false;
 
-function water() {
+class HorizontalLine {
+  constructor(y, length) {
+    this.y = y;
+    this.length = length;
+    this.c = color(0, map(y, 0, height, 255, 50), 200);
+    this.noiseOffset = random(1000);
+  }
 
+  drawWave(time) {
+    stroke(this.c);
+    strokeWeight(2);
+    noFill();
+
+    beginShape();
+    for (let x = 0; x < this.length; x += 2) {
+      let amp = map(noise(this.noiseOffset + x * 0.01), 0, 1, 5, 30);
+      let offsetY = sin((x / this.length) * TWO_PI + time) * amp;
+      vertex(x, this.y + offsetY);
+    }
+    endShape();
+  }
+}
+
+function water() {
+    t += 0.05;
+    for (let l of lines) {
+        l.drawWave(t);
+    }
 }
 
 // ------------------ AIR ------------------ //
@@ -176,4 +211,5 @@ function water() {
 let showAir = false;
 
 function air() {
+    
 }
