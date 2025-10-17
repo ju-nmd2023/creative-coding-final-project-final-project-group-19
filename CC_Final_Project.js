@@ -19,6 +19,47 @@ function draw() {
 
     windTime += 0.02;
     earth();
+
+    if (showEarth) {
+        earth();
+    } else if (showFire) {
+        fire();
+    } else if (showWater) {
+        water();
+    } else if (showAir) {
+        air();
+    }
+}
+
+function keyPressed() {
+    if(key == " ") {
+        if(showEarth) {
+            showEarth = false;
+            showFire = true;
+            fire();
+        } else if(showFire) {
+            showFire = false;
+            showWater = true;
+            water();
+        } else if(showWater) {
+            showWater = false;
+            showAir = true;
+            air();
+        }
+    }
+}
+
+function mousePressed() {
+    if (showEarth) {
+        treeX = mouseX;
+        treeY = height;
+        currentTree = generateTree(120, 0);
+        growth = 0;
+    } else if (showFire) {
+        for (let i = 0; i < 20; i++) {
+            fireParticles.push(new FireParticle(mouseX, mouseY));
+        }
+    }
 }
 
 // ------------------ EARTH ------------------ //
@@ -88,18 +129,38 @@ function earth() {
     pop();
 }
 
-function mousePressed() {
-    treeX = mouseX;
-    treeY = height;
-    currentTree = generateTree(120, 0);
-    growth = 0;
-}
-
 // ------------------ FIRE ------------------ //
 
 let showFire = false;
+let fireParticles = [];
+
+class FireParticle {
+  constructor(x, y) {
+    this.position = createVector(x, y);
+    this.velocity = p5.Vector.random2D().mult(random(2, 5));
+    this.radius = random(4, 10);
+    this.c = color(random(200, 255), random(50, 100), 0);
+  }
+
+  update() {
+    this.position.add(this.velocity);
+
+    if (this.position.x < 0 || this.position.x > width) this.velocity.x *= -1;
+    if (this.position.y < 0 || this.position.y > height) this.velocity.y *= -1;
+  }
+
+  draw() {
+    noStroke();
+    fill(this.c);
+    ellipse(this.position.x, this.position.y, this.radius);
+  }
+}
 
 function fire() {
+    for (let p of fireParticles) {
+        p.update();
+        p.draw();
+    }
 }
 
 // ------------------ WATER ------------------ //
@@ -115,22 +176,4 @@ function water() {
 let showAir = false;
 
 function air() {
-}
-
-function keyPressed() {
-    if(key == " ") {
-        if(showEarth) {
-            showEarth = false;
-            showFire = true;
-            fire();
-        } else if(showFire) {
-            showFire = false;
-            showWater = true;
-            water();
-        } else if(showWater) {
-            showWater = false;
-            showAir = true;
-            air();
-        }
-    }
 }
