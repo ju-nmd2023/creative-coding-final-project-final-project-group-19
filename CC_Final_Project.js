@@ -1,8 +1,14 @@
+let trees = [];
 let treeX;
 let currentTree;
+
 let lines = [];
 let t = 0;
 let numLines = 100;
+
+let blobs = [];
+let numBlobs = 30;
+let points = 30;
 
 function setup() {
     createCanvas(innerWidth, innerHeight);
@@ -16,6 +22,10 @@ function setup() {
         let y = map(i, 0, numLines, -50, height + 50);
         let len = width;
         lines.push(new HorizontalLine(y, len));
+    }
+
+    for (let i = 0; i < numBlobs; i++) {
+        blobs.push(new Blob(random(width), random(height), random(50, 150)));
     }
 }
 
@@ -58,11 +68,13 @@ function keyPressed() {
 }
 
 function mousePressed() {
-    if (showEarth) {
-        treeX = mouseX;
-        treeY = height;
-        currentTree = generateTree(120, 0);
-        growth = 0;
+   if (showEarth) {
+        let newTree = {
+            x: mouseX,
+            tree: generateTree(120, 0),
+            growth: 0,
+        };
+        trees.push(newTree);
     } else if (showFire) {
         for (let i = 0; i < 20; i++) {
             fireParticles.push(new FireParticle(mouseX, mouseY));
@@ -100,7 +112,7 @@ function generateTree(length, depth) {
   return node;
 }
 
-function branch(node, depth) {
+function branch(node, depth, growth) {
     if (depth > growth) return;
 
     let shade = map(depth, 0, maxDepth, 80, 200);
@@ -118,23 +130,30 @@ function branch(node, depth) {
     if (node.right && depth < growth) {
         push();
         rotate(swayRight);
-        branch(node.right, depth + 1);
+        branch(node.right, depth + 1, growth);
         pop();
     }
 
     if (node.left && depth < growth) {
         push();
         rotate(-swayLeft);
-        branch(node.left, depth + 1);
+        branch(node.left, depth + 1, growth);
         pop();
     }
 }
 
 function earth() {
-    push(); 
-    translate(treeX, height);
-    branch(currentTree, 0);
-    pop();
+    for (let t of trees) {
+
+        if (t.growth < maxDepth) {
+            t.growth += growSpeed;
+        }
+
+        push();
+        translate(t.x, height);
+        branch(t.tree, 0, t.growth);
+        pop();
+    }
 }
 
 // ------------------ FIRE ------------------ //
@@ -207,9 +226,52 @@ function water() {
 }
 
 // ------------------ AIR ------------------ //
+// 
 
 let showAir = false;
 
+class Blob {
+  constructor(x, y, radius) {
+    this.x = x;
+    this.y = y;
+    this.radius = radius;
+    this.alpha = random(50, 120);
+    this.speed = random(0.2, 1);
+    this.offsets = [];
+    this.noiseSeed = random(1000);
+    for (let i = 0; i < points; i++) {
+      this.offsets.push(random(-20, 20));
+    }
+  }
+
+  update() {
+    this.x += this.speed;
+    if (this.x - this.radius > width) this.x = -this.radius;
+
+    for (let i = 0; i < this.offsets.length; i++) {
+      this.offsets[i] = map(noise(this.noiseSeed + i * 0.1 + frameCount * 0.01), 0, 1, -30, 30);
+    }
+  }
+
+  display() {
+    fill(255, this.alpha);
+    noStroke();
+
+    beginShape();
+    for (let i = 0; i < points; i++) {
+      let angle = map(i, 0, points, 0, TWO_PI);
+      let r = this.radius + this.offsets[i];
+      let x = this.x + cos(angle) * r;
+      let y = this.y + sin(angle) * r;
+      vertex(x, y);
+    }
+    endShape(CLOSE);
+  }
+}
+
 function air() {
-    
+    for (let blob of blobs) {
+        blob.update();
+        blob.display();
+    }
 }
