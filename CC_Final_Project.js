@@ -7,7 +7,7 @@ let currentTree;
 
 let lines = [];
 let t = 0;
-let numLines = 100;
+let numLines = 80;
 
 let blobs = [];
 let numBlobs = 30;
@@ -35,9 +35,9 @@ function setup() {
     startButton.style("font-size", "20px");
     startButton.style("padding", "10px 30px");
     startButton.style("border-radius", "10px");
-    startButton.style("background", "#ff20");
+    startButton.style("background", "#202020");
     startButton.style("color", "white");
-    startButton.position(width / 2 - 35, height / 2 - 20);
+    startButton.position(width / 2 - 35, height / 2 + 80);
     startButton.mousePressed(startSketch);
   
     noLoop();
@@ -108,9 +108,11 @@ function mousePressed() {
         };
         trees.push(newTree);
     } else if (showFire) {
-        for (let i = 0; i < 20; i++) {
-            fireParticles.push(new FireParticle(mouseX, mouseY));
-        }
+        spawnFire(mouseX, mouseY, false);
+
+        setTimeout(() => {
+        spawnFire(mouseX, mouseY, true);
+        }, 1000);
     }
 }
 
@@ -151,7 +153,7 @@ function branch(node, depth, growth) {
     let branchStroke = map(node.length, 120, 2, 8, 0.5);
     strokeWeight(branchStroke);
     
-    stroke(shade + 70, shade + 10, 0);
+    stroke(shade + 10, shade + 70, 0);
     line(0, 0, 0, -node.length);
     translate(0, -node.length);
 
@@ -175,38 +177,53 @@ function branch(node, depth, growth) {
 }
 
 function earth() {
-    for (let t of trees) {
-
-        if (t.growth < maxDepth) {
-            t.growth += growSpeed;
-        }
-
-        push();
-        translate(t.x, height);
-        branch(t.tree, 0, t.growth);
-        pop();
+  background(255);
+    for (let t of trees) { 
+        if (t.growth < maxDepth) { 
+            t.growth += growSpeed; 
+        } 
+        
+        push(); 
+        translate(t.x, height); 
+        branch(t.tree, 0, t.growth); 
+        pop(); 
     }
 }
 
 // ------------------ FIRE ------------------ //
-// 
 
 let showFire = false;
 let fireParticles = [];
 
 class FireParticle {
   constructor(x, y) {
+    this.origin = createVector(x, y);
     this.position = createVector(x, y);
-    this.velocity = p5.Vector.random2D().mult(random(2, 5));
-    this.radius = random(4, 10);
+    this.velocity = p5.Vector.random2D().mult(random(5, 10));
+    this.radius = random(1, 5);
     this.c = color(random(200, 255), random(50, 100), 0);
+
+    this.angle = random(TWO_PI);
+    this.orbitRadius = random(20, 60);
+    this.orbitSpeed = random(0.03, 0.05);
+    this.orbitTime = 0;
+    this.orbitDuration = 60;
+
+    this.velocity = p5.Vector.random2D().mult(random(2, 5));
   }
 
   update() {
-    this.position.add(this.velocity);
+    if (this.orbitTime < this.orbitDuration) {
+      this.angle += this.orbitSpeed;
+      this.position.x = this.origin.x + cos(this.angle) * this.orbitRadius;
+      this.position.y = this.origin.y + sin(this.angle) * this.orbitRadius;
+      this.orbitTime++;
+    } else {
+      this.position.add(this.velocity);
 
-    if (this.position.x < 0 || this.position.x > width) this.velocity.x *= -1;
-    if (this.position.y < 0 || this.position.y > height) this.velocity.y *= -1;
+      if (this.position.x < 0 || this.position.x > width) this.velocity.x *= -1;
+      if (this.position.y < 0 || this.position.y > height) this.velocity.y *= -1;
+    }
   }
 
   draw() {
@@ -216,13 +233,25 @@ class FireParticle {
   }
 }
 
+function spawnFire(x, y, lighter = false) {
+  for (let i = 0; i < 20; i++) {
+    let p = new FireParticle(x, y);
+
+    if (lighter) {
+      p.c = color(random(255, 255), random(150, 255), 0, 180);
+      p.radius *= 1.2;
+    }
+
+    fireParticles.push(p);
+  }
+}
+
 function fire() {
     for (let p of fireParticles) {
         p.update();
         p.draw();
     }
 }
-
 // ------------------ WATER ------------------ //
 
 let showWater = false;
@@ -233,32 +262,53 @@ class HorizontalLine {
     this.length = length;
     this.c = color(0, map(y, 0, height, 255, 50), 200);
     this.noiseOffset = random(1000);
+    this.amp = random(20, 80);
+    this.speed = random(0.05, 0.1);
   }
 
   drawWave(time) {
-    stroke(this.c);
-    strokeWeight(2);
-    noFill();
+    noStroke();
+    fill(this.c);
 
     beginShape();
+    vertex(0, height);
     for (let x = 0; x < this.length; x += 2) {
-      let amp = map(noise(this.noiseOffset + x * 0.01), 0, 1, 5, 30);
-      let offsetY = sin((x / this.length) * TWO_PI + time) * amp;
-      vertex(x, this.y + offsetY);
+      let yOffset = map(noise(this.noiseOffset + x * 0.005, time * this.speed), 0, 1, -this.amp, this.amp);
+      vertex(x, this.y + yOffset);
     }
-    endShape();
+    vertex(width, height);
+    endShape(CLOSE);
   }
 }
 
 function water() {
-    t += 0.05;
-    for (let l of lines) {
-        l.drawWave(t);
+  let ampFactor = map(mouseY, 0, height, 0.3, 2.0);
+  t += 0.05;
+
+  background(0, 30);
+  for (let l of lines) {
+    noStroke();
+    fill(l.c);
+
+    beginShape();
+    vertex(0, height);
+
+    for (let x = 0; x <= l.length; x += 10) {
+      let yOffset = map(
+        noise(l.noiseOffset + x * 0.01, t * l.speed),
+        0, 1,
+        -l.amp * ampFactor,
+        l.amp * ampFactor
+      );
+      vertex(x, l.y + yOffset);
     }
+
+    vertex(width, height);
+    endShape(CLOSE);
+  }
 }
 
 // ------------------ AIR ------------------ //
-// 
 
 let showAir = false;
 
@@ -274,6 +324,7 @@ class Blob {
     for (let i = 0; i < points; i++) {
       this.offsets.push(random(-20, 20));
     }
+     this.c = color(random(220, 255), random(230, 255), random(240, 255), this.alpha);
   }
 
   update() {
@@ -283,10 +334,17 @@ class Blob {
     for (let i = 0; i < this.offsets.length; i++) {
       this.offsets[i] = map(noise(this.noiseSeed + i * 0.1 + frameCount * 0.01), 0, 1, -30, 30);
     }
+
+    let d = dist(mouseX, mouseY, this.x, this.y);
+    if (d < this.radius * 2) {
+      let angle = atan2(this.y - mouseY, this.x - mouseX);
+      this.x += cos(angle) * 2;
+      this.y += sin(angle) * 1;
+    }
   }
 
   display() {
-    fill(255, this.alpha);
+    fill(this.c, this.alpha);
     noStroke();
 
     beginShape();
