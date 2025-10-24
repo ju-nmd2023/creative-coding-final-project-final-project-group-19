@@ -13,6 +13,9 @@ let blobs = [];
 let numBlobs = 30;
 let points = 30;
 
+let music;
+// transcend by two lanes (piano cover) by Jessie Black, https://www.youtube.com/watch?v=8SfduKTBkGU 
+
 function setup() {
     createCanvas(innerWidth, innerHeight);
     background(0);
@@ -39,6 +42,8 @@ function setup() {
     startButton.style("color", "white");
     startButton.position(width / 2 - 35, height / 2 + 80);
     startButton.mousePressed(startSketch);
+
+    music = new Tone.Player("assets/transcend_two-lanes.mp3").toDestination();
   
     noLoop();
 }
@@ -48,6 +53,13 @@ function startSketch() {
     startButton.hide();
     loop();
     showEarth = true;
+
+    if (Tone.context.state !== 'running') {
+        Tone.start();
+    }
+    music.volume.value = -10;
+    music.loop = true;
+    music.start();
 }
 
 function draw() {
@@ -95,6 +107,10 @@ function keyPressed() {
             showWater = false;
             showAir = true;
             air();
+        } else if(showAir) {
+            showAir = false;
+            showEarth = true;
+            earth();
         }
     }
 }
